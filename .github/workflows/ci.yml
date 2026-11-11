@@ -42,6 +42,23 @@ jobs:
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
     runs-on: macos-latest
     steps:
+      # A full clone saved daily by `git-cache.yml`. `setup-homebrew` keeps an existing tap and only fetches newer commits.
+      - name: Restore Git cache
+        id: git-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .git
+          key: git-snapshot-
+          restore-keys: git-snapshot-
+
+      - name: Seed tap from Git cache
+        if: steps.git-cache.outputs.cache-matched-key
+        run: |
+          tap="$(brew --repository "${GITHUB_REPOSITORY}")"
+          mkdir -p "${tap}"
+          mv .git "${tap}/.git"
+          git -C "${tap}" checkout --force --quiet
+
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@c262868c096d909fc278daa87ed9772967331ea3 # 2026.11.02.1
@@ -85,6 +102,24 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     steps:
+      # A full clone saved daily by `git-cache.yml`. `setup-homebrew` keeps an existing tap and only fetches newer commits.
+      - name: Restore Git cache
+        id: git-cache
+        if: ${{ !matrix.container }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .git
+          key: git-snapshot-
+          restore-keys: git-snapshot-
+
+      - name: Seed tap from Git cache
+        if: steps.git-cache.outputs.cache-matched-key
+        run: |
+          tap="$(brew --repository "${GITHUB_REPOSITORY}")"
+          mkdir -p "${tap}"
+          mv .git "${tap}/.git"
+          git -C "${tap}" checkout --force --quiet
+
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@c262868c096d909fc278daa87ed9772967331ea3 # 2026.11.02.1
