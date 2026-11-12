@@ -1,15 +1,14 @@
 name: Git cache
 
 on:
-  push:
-    paths:
-      - .github/workflows/git-cache.yml
+  # Scheduled runs only. Every pull request's CI restores this cache and trusts its contents,
+  # so no push, pull request or manual run may save it.
   schedule:
     # Once a day, off the hour because GitHub delays or drops scheduled runs at the top of the hour.
     - cron: "17 3 * * *"
 
 concurrency:
-  group: git-cache-${{ github.ref }}
+  group: git-cache
   cancel-in-progress: true
 
 permissions:
@@ -17,7 +16,7 @@ permissions:
 
 jobs:
   save:
-    if: github.repository_owner == 'Homebrew'
+    if: github.repository_owner == 'Homebrew' && github.event_name == 'schedule'
     # `ci.yml` restores this on macOS. The cache version includes the compression method, so save on macOS too.
     runs-on: macos-latest
     permissions:
